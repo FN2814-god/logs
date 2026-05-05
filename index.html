@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Log — Cardoza.Dev</title>
+  <meta name="description"
+    content="Bitácora técnica y reflexiones de José Enmanuel Cardoza." />
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyan: '#00fff0',
+            magenta: '#ff00c8',
+            accent: '#00ff87',
+            'accent-dim': '#00cc6a',
+            surface: '#080810',
+            's1': '#0e0e18',
+            's2': '#13131f',
+            's3': '#1a1a28',
+            's4': '#222235',
+            border: '#2a2a40',
+            'tp': '#eeeeff',
+            'ts': '#7878a0',
+            'tm': '#44445a',
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            sans: ['"Inter"', 'system-ui', 'sans-serif'],
+          },
+          animation: {
+            'blink': 'blink 1.1s step-end infinite',
+            'pulse-slow': 'pulse 3s ease-in-out infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'scan': 'scan 8s linear infinite',
+            'glitch': 'glitch 4s infinite',
+          },
+          keyframes: {
+            blink: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0' } },
+            float: { '0%,100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-12px)' } },
+            scan: { '0%': { transform: 'translateY(-100%)' }, '100%': { transform: 'translateY(100vh)' } },
+            glitch: {
+              '0%,90%,100%': { clipPath: 'inset(0 0 100% 0)', transform: 'translate(0)' },
+              '92%': { clipPath: 'inset(20% 0 50% 0)', transform: 'translate(-3px, 2px)', color: '#ff00c8' },
+              '94%': { clipPath: 'inset(60% 0 10% 0)', transform: 'translate(3px, -2px)', color: '#00fff0' },
+              '96%': { clipPath: 'inset(40% 0 30% 0)', transform: 'translate(-2px, 1px)', color: '#00ff87' },
+              '98%': { clipPath: 'inset(0 0 70% 0)', transform: 'translate(2px, -1px)' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --green: #00ff87;
+      --cyan: #00fff0;
+      --magenta: #ff00c8;
+      --purple: #9d00ff;
+      --bg: #080810;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: #eeeeff;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0a12;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(var(--green), var(--cyan));
+      border-radius: 2px;
+    }
+
+    /* ── Selection ── */
+    ::selection {
+      background: rgba(0, 255, 240, 0.2);
+      color: #fff;
+    }
+
+    /* ── Scanlines overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(to bottom,
+          transparent 0px, transparent 2px,
+          rgba(0, 0, 0, 0.06) 2px, rgba(0, 0, 0, 0.06) 3px);
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    /* ── Moving scan line ── */
+    .scan-line {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--cyan) 40%, var(--green) 60%, transparent 100%);
+      opacity: 0.06;
+      animation: scan 12s linear infinite;
+      pointer-events: none;
+      z-index: 9997;
+    }
+
+    /* ── Cyber grid background ── */
+    .cyber-grid {
+      background-image:
+        linear-gradient(rgba(0, 255, 240, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 240, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── Corner accent decoration ── */
+    .corner::before,
+    .corner::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      pointer-events: none;
+    }
+
+    .corner::before {
+      top: -1px;
+      left: -1px;
+      border-top: 2px solid var(--green);
+      border-left: 2px solid var(--green);
+    }
+
+    .corner::after {
+      bottom: -1px;
+      right: -1px;
+      border-bottom: 2px solid var(--cyan);
+      border-right: 2px solid var(--cyan);
+    }
+
+    /* ── Glitch title ── */
+    .glitch {
+      position: relative;
+      display: inline-block;
+      color: var(--green);
+      text-shadow: 0 0 30px rgba(0, 255, 135, 0.5), 0 0 60px rgba(0, 255, 135, 0.2);
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .glitch::before {
+      color: var(--magenta);
+      animation: glitch-1 4s infinite;
+      clip-path: inset(0 0 100% 0);
+    }
+
+    .glitch::after {
+      color: var(--cyan);
+      animation: glitch-2 4s infinite;
+      clip-path: inset(0 0 100% 0);
+    }
+
+    @keyframes glitch-1 {
+
+      0%,
+      89%,
+      100% {
+        clip-path: inset(0 0 100% 0);
+        transform: translate(0);
+      }
+
+      90% {
+        clip-path: inset(15% 0 55% 0);
+        transform: translate(-3px, 2px);
+      }
+
+      92% {
+        clip-path: inset(65% 0 5% 0);
+        transform: translate(3px, -1px);
+      }
+
+      94% {
+        clip-path: inset(35% 0 35% 0);
+        transform: translate(-2px, 3px);
+      }
+
+      96% {
+        clip-path: inset(80% 0 2% 0);
+        transform: translate(2px, -2px);
+      }
+    }
+
+    @keyframes glitch-2 {
+
+      0%,
+      91%,
+      100% {
+        clip-path: inset(0 0 100% 0);
+        transform: translate(0);
+      }
+
+      92% {
+        clip-path: inset(50% 0 25% 0);
+        transform: translate(3px, -2px);
+      }
+
+      94% {
+        clip-path: inset(10% 0 70% 0);
+        transform: translate(-3px, 2px);
+      }
+
+      96% {
+        clip-path: inset(70% 0 8% 0);
+        transform: translate(2px, -1px);
+      }
+
+      98% {
+        clip-path: inset(25% 0 50% 0);
+        transform: translate(-2px, 2px);
+      }
+    }
+
+    /* ── Neon text ── */
+    .neon-green {
+      color: var(--green);
+      text-shadow: 0 0 8px rgba(0, 255, 135, 0.6), 0 0 20px rgba(0, 255, 135, 0.3);
+    }
+
+    .neon-cyan {
+      color: var(--cyan);
+      text-shadow: 0 0 8px rgba(0, 255, 240, 0.6), 0 0 20px rgba(0, 255, 240, 0.3);
+    }
+
+    .neon-mag {
+      color: var(--magenta);
+      text-shadow: 0 0 8px rgba(255, 0, 200, 0.6);
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+
+    /* ── Nav link ── */
+    .nav-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      color: #7878a0;
+      transition: color 0.2s;
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+      transition: width 0.25s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--green);
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 28px;
+      background: linear-gradient(135deg, var(--green) 0%, var(--cyan) 100%);
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      position: relative;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 28px rgba(0, 255, 135, 0.5), 0 0 60px rgba(0, 255, 240, 0.2);
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 28px;
+      background: transparent;
+      color: var(--magenta);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 0, 200, 0.4);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 0, 200, 0.08);
+      border-color: var(--magenta);
+      box-shadow: 0 0 20px rgba(255, 0, 200, 0.3);
+      color: #ff66e0;
+      transform: translateY(-2px);
+    }
+
+    .btn-details {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--green);
+      transition: all 0.2s;
+      margin-top: auto;
+    }
+
+    .btn-details:hover {
+      color: var(--cyan);
+      gap: 10px;
+    }
+
+    /* ── Tag badge ── */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 13px;
+      border-radius: 3px;
+      background: rgba(0, 255, 240, 0.05);
+      border: 1px solid rgba(0, 255, 240, 0.15);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      color: #9090b8;
+      transition: all 0.2s ease;
+      cursor: default;
+    }
+
+    .tag:hover {
+      background: rgba(0, 255, 135, 0.1);
+      border-color: rgba(0, 255, 135, 0.5);
+      color: var(--green);
+      box-shadow: 0 0 10px rgba(0, 255, 135, 0.15);
+    }
+
+    /* ── Terminal dot ── */
+    .tdot {
+      display: inline-block;
+      border-radius: 50%;
+      width: 10px;
+      height: 10px;
+    }
+
+    /* ── Project card ── */
+    .project-card {
+      background: #0e0e1a;
+      border: 1px solid #1e1e32;
+      border-radius: 6px;
+      padding: 26px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green) 30%, var(--cyan) 70%, transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .project-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 255, 135, 0.03) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .project-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(0, 255, 135, 0.3);
+      box-shadow: 0 0 30px rgba(0, 255, 135, 0.08), 0 8px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .project-card:hover::before {
+      opacity: 1;
+    }
+
+    .project-card:hover::after {
+      opacity: 1;
+    }
+
+    .cyber-card {
+      clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+    }
+
+    .dev-card {
+      background: #0a0a14;
+      border: 1px dashed rgba(157, 0, 255, 0.3);
+      position: relative;
+    }
+
+    .dev-card:hover {
+      border-style: solid;
+      border-color: var(--purple);
+      box-shadow: 0 0 30px rgba(157, 0, 255, 0.1);
+    }
+
+    /* ── Icon box ── */
+    .icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 255, 135, 0.07);
+      border: 1px solid rgba(0, 255, 135, 0.18);
+      flex-shrink: 0;
+    }
+
+    /* ── Reveal animation ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Divider glow ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 240, 0.15) 30%, rgba(0, 255, 135, 0.15) 70%, transparent);
+    }
+
+    /* ── Language switcher btn ── */
+    .lang-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      padding: 5px 14px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 255, 135, 0.35);
+      background: transparent;
+      color: var(--green);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+    }
+
+    .lang-btn:hover {
+      background: rgba(0, 255, 135, 0.1);
+      box-shadow: 0 0 14px rgba(0, 255, 135, 0.3);
+    }
+
+    /* ── Contact btn ── */
+    .btn-contact {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 40px;
+      background: linear-gradient(135deg, var(--green) 0%, var(--cyan) 100%);
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    }
+
+    .btn-contact:hover {
+      box-shadow: 0 0 36px rgba(0, 255, 135, 0.55), 0 0 80px rgba(0, 255, 240, 0.25);
+      transform: translateY(-3px);
+      filter: brightness(1.08);
+    }
+
+    @media (max-width: 640px) {
+      .hero-name {
+        font-size: clamp(2.2rem, 10vw, 3.2rem) !important;
+      }
+    }
+
+    /* ── Markdown Viewer ── */
+    .markdown-body {
+      color: #eeeeff;
+      font-family: 'Inter', system-ui, sans-serif;
+      line-height: 1.6;
+    }
+    .markdown-body h1, .markdown-body h2 {
+      color: var(--green);
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .markdown-body a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    .markdown-body a:hover {
+      text-decoration: underline;
+    }
+    .markdown-body pre {
+      background-color: #050508;
+      border: 1px solid var(--magenta);
+      padding: 1em;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 1.5em 0;
+    }
+    .markdown-body code {
+      background-color: #050508;
+      color: #eeeeff;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+      border: 1px solid var(--cyan);
+    }
+    .markdown-body pre code {
+      background-color: transparent;
+      padding: 0;
+      border: none;
+    }
+    .markdown-body p {
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+
+<body class="cyber-grid">
+
+  <!-- Scanline sweep -->
+  <div class="scan-line"></div>
+
+  <!-- ══════════════════════════════════════════════ HEADER ══ -->
+  <header id="navbar" class="fixed top-0 inset-x-0 z-50 transition-all duration-300"
+    style="background:rgba(8,8,16,0.82);backdrop-filter:blur(18px);border-bottom:1px solid rgba(0,255,240,0.07);">
+    <nav class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+
+      <!-- Brand -->
+      <a href="https://enmanuel.tech" class="font-mono font-bold tracking-widest flex items-center gap-1 text-sm">
+        <span style="color:#44445a">[</span>
+        <span class="neon-green">Cardoza</span>
+        <span style="color:#44445a">.</span>
+        <span class="neon-cyan">Dev</span>
+        <span class="animate-blink" style="color:#00ff87">_</span>
+        <span style="color:#44445a">]</span>
+      </a>
+
+      <!-- Desktop nav + lang switcher -->
+      <div class="hidden sm:flex items-center gap-7">
+        <a href="#tutoriales" class="nav-link" data-i18n="nav_tutoriales">tutoriales</a>
+        <a href="#reflexiones" class="nav-link" data-i18n="nav_reflexiones">reflexiones</a>
+        <a href="#archivo" class="nav-link" data-i18n="nav_archivo">archivo</a>
+        <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">EN</button>
+      </div>
+
+      <!-- Mobile: lang + hamburger -->
+      <div class="sm:hidden flex items-center gap-3">
+        <button class="lang-btn text-xs px-2 py-1" onclick="toggleLang()" id="lang-toggle-m">EN</button>
+        <button id="menu-btn" class="p-1" style="color:#7878a0" aria-label="Menú">
+          <svg id="icon-open" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+            viewBox="0 0 24 24">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+          <svg id="icon-close" class="hidden" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+            viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile dropdown -->
+    <div id="mobile-menu" class="hidden sm:hidden px-5 pb-5 pt-3 flex flex-col gap-4"
+      style="background:rgba(8,8,16,0.98);border-top:1px solid rgba(0,255,240,0.06);">
+      <a href="#tutoriales" class="nav-link text-sm" data-i18n="nav_tutoriales" onclick="closeMobileMenu()">tutoriales</a>
+      <a href="#reflexiones" class="nav-link text-sm" data-i18n="nav_reflexiones" onclick="closeMobileMenu()">reflexiones</a>
+      <a href="#archivo" class="nav-link text-sm" data-i18n="nav_archivo"
+        onclick="closeMobileMenu()">archivo</a>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ═══════════════════════════════════════════════ HERO ══ -->
+    <section id="hero-log" class="min-h-[60vh] flex items-center relative pt-14 overflow-hidden">
+
+      <canvas id="particles" class="absolute inset-0 pointer-events-none" style="opacity:0.5;"></canvas>
+
+      <!-- Glow blobs -->
+      <div class="absolute pointer-events-none"
+        style="top:-8%;left:-4%;width:650px;height:650px;background:radial-gradient(circle,rgba(0,255,135,0.05) 0%,transparent 65%);filter:blur(70px);">
+      </div>
+      <div class="absolute pointer-events-none"
+        style="bottom:-10%;right:-4%;width:550px;height:550px;background:radial-gradient(circle,rgba(255,0,200,0.05) 0%,transparent 65%);filter:blur(70px);">
+      </div>
+
+      <div class="max-w-6xl mx-auto px-5 sm:px-8 py-20 w-full relative z-10">
+
+        <!-- Terminal pill -->
+        <div class="inline-flex items-center gap-2 mb-8 px-4 py-2 font-mono text-xs"
+          style="background:rgba(0,255,135,0.05);border:1px solid rgba(0,255,135,0.18);border-radius:3px;color:#44445a;">
+          <span class="tdot bg-red-500"></span>
+          <span class="tdot bg-yellow-400"></span>
+          <span class="tdot" style="background:#00ff87;box-shadow:0 0 6px #00ff87"></span>
+          <span class="ml-1 font-mono">~/log — zsh</span>
+          <span class="animate-blink ml-1" style="color:#00ff87">▊</span>
+        </div>
+
+        <!-- Prompt Subtitle -->
+        <p class="section-label mb-4"><span style="color:#44445a">$</span> <span data-i18n="hero_cmd">tail -f /var/log/pensamientos.log</span></p>
+
+        <!-- Title with glitch -->
+        <h1 class="hero-name font-mono font-bold leading-none mb-6"
+          style="font-size:clamp(2.5rem,8vw,5.5rem);letter-spacing:-0.02em;">
+          <span class="glitch" data-text="System Log" data-i18n="hero_title">System Log</span>
+        </h1>
+
+        <!-- Typewriter -->
+        <div class="flex items-center gap-2 mb-8">
+          <span class="font-mono text-sm" style="color:#44445a">//</span>
+          <span id="typewriter" class="font-mono text-sm" style="color:#00fff0;min-height:1.4em;"></span>
+        </div>
+
+        <!-- Bio / Description -->
+        <p class="max-w-2xl leading-relaxed mb-10" style="color:#7878a0;font-size:1rem;">
+          <span data-i18n="hero_desc">Bitácora técnica y reflexiones. Desde auditorías OSINT y optimización del kernel en MX Linux, hasta filosofía del software y ciencias.</span>
+        </p>
+
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════ MAIN GRID ══ -->
+    <section class="pb-24 relative z-10" id="main-content">
+      <div class="max-w-6xl mx-auto px-5 sm:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- COLUMNA IZQUIERDA: ÍNDICE DE ARTÍCULOS -->
+          <div class="lg:col-span-4 flex flex-col gap-4 max-h-[80vh] overflow-y-auto pr-2 scroll-smooth" id="article-index">
+            <div class="project-card cyber-card reveal cursor-pointer p-5 hover:bg-[#0a0a14] transition-colors border-magenta/40 shadow-[0_0_15px_rgba(255,0,200,0.15)]" onclick="loadPost('rdr2-ai')">
+              <div class="absolute top-0 right-0 bg-magenta text-black text-[0.6rem] font-bold px-2 py-0.5 rounded-bl-md">DESTACADO</div>
+              <p class="text-xs text-ts font-mono mb-2">05 May 2026</p>
+              <h3 class="font-mono font-semibold mb-3 text-[#eeeeff]" data-i18n="card1_title">El Código Detrás del Salvaje Oeste: IA en RDR2</h3>
+              <div class="flex flex-wrap gap-2 mt-auto">
+                <span class="tag">Gaming</span><span class="tag">IA</span><span class="tag">Ingeniería</span>
+              </div>
+            </div>
+
+            <div class="project-card cyber-card reveal cursor-pointer p-5 hover:bg-[#0a0a14] transition-colors" onclick="loadPost('post2.md')" style="transition-delay:0.1s;">
+              <p class="text-xs text-ts font-mono mb-2">05 May 2026</p>
+              <h3 class="font-mono font-semibold mb-3 text-[#eeeeff]">OSINT: Rastreando Huellas Digitales</h3>
+              <div class="flex flex-wrap gap-2 mt-auto">
+                <span class="tag">Ciberseguridad</span><span class="tag">OSINT</span>
+              </div>
+            </div>
+
+            <div class="project-card cyber-card reveal cursor-pointer p-5 hover:bg-[#0a0a14] transition-colors" onclick="loadPost('post3.md')" style="transition-delay:0.2s;">
+              <p class="text-xs text-ts font-mono mb-2">28 Abr 2026</p>
+              <h3 class="font-mono font-semibold mb-3 text-[#eeeeff]">La navaja de Ockham en el Desarrollo</h3>
+              <div class="flex flex-wrap gap-2 mt-auto">
+                <span class="tag">Reflexión</span><span class="tag">Software</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA: VISOR DE MARKDOWN -->
+          <div class="lg:col-span-8 bg-[#0a0a14] border border-cyan/30 rounded-lg p-6 lg:p-10 min-h-[60vh] relative overflow-hidden shadow-[0_0_30px_rgba(0,255,240,0.05)]">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan to-transparent opacity-50"></div>
+            <div id="reader-content" class="markdown-body h-full">
+              <p class="font-mono flex items-center gap-2 mt-4" style="color:var(--cyan)">
+                <span class="text-magenta">></span> Seleccione un archivo del índice para leer...
+                <span class="animate-blink inline-block w-2 h-4" style="background:var(--cyan)"></span>
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════ FOOTER ══ -->
+  <footer id="footer" class="py-20 relative" style="border-top:1px solid rgba(0,255,240,0.07);">
+    <div class="max-w-2xl mx-auto px-5 sm:px-8 text-center">
+
+      <div class="divider mb-12"></div>
+
+      <!-- Brand mark -->
+      <div class="font-mono font-bold text-xl tracking-widest mb-6">
+        <span style="color:#44445a">[</span>
+        <span class="neon-green">Cardoza</span>
+        <span style="color:#44445a">.</span>
+        <span class="neon-cyan">Dev</span>
+        <span style="color:#44445a">]</span>
+      </div>
+
+      <!-- Goodbye text -->
+      <p class="mb-3 leading-relaxed" style="color:#7878a0; font-size:0.9rem;" data-i18n="footer_text">
+        ¿Tienes un proyecto en mente o quieres hablar sobre tecnología?<br />
+        Estoy disponible para colaboraciones, freelance y nuevas oportunidades.
+      </p>
+
+      <!-- Single contact CTA -->
+      <a href="mailto:contact@enmanuel.tech" class="btn-contact mt-8">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
+        </svg>
+        <span data-i18n="footer_btn">Enviar mensaje</span>
+      </a>
+
+      <div class="divider mt-12 mb-6"></div>
+
+      <!-- Bottom bar -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-mono"
+        style="color:#44445a;">
+        <span>© 2026 José Enmanuel Cardoza</span>
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full animate-pulse-slow"
+            style="background:#00ff87;box-shadow:0 0 6px #00ff87;"></span>
+          <span data-i18n="footer_avail">disponible para proyectos</span>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════ SCRIPTS ══ -->
+  <script>
+
+    /* ════════════════════════ i18n dictionary ════════════════════════ */
+    const DICT = {
+      es: {
+        nav_tutoriales: 'tutoriales',
+        nav_reflexiones: 'reflexiones',
+        nav_archivo: 'archivo',
+        hero_cmd: 'tail -f /var/log/pensamientos.log',
+        hero_title: 'System Log',
+        hero_desc: 'Bitácora técnica y reflexiones. Desde auditorías OSINT y optimización del kernel en MX Linux, hasta filosofía del software y ciencias.',
+        footer_text: '¿Tienes un proyecto en mente o quieres hablar sobre tecnología?<br/>Estoy disponible para colaboraciones, freelance y nuevas oportunidades.',
+        footer_btn: 'Enviar mensaje',
+        footer_avail: 'disponible para proyectos',
+        card1_title: 'El Código Detrás del Salvaje Oeste: IA en RDR2'
+      },
+      en: {
+        nav_tutoriales: 'tutorials',
+        nav_reflexiones: 'thoughts',
+        nav_archivo: 'archive',
+        hero_cmd: 'tail -f /var/log/thoughts.log',
+        hero_title: 'System Log',
+        hero_desc: 'Technical log and reflections. From OSINT audits and kernel optimization in MX Linux, to software philosophy and sciences.',
+        footer_text: 'Have a project in mind or want to talk about technology?<br/>I am available for collaborations, freelance, and new opportunities.',
+        footer_btn: 'Send message',
+        footer_avail: 'available for projects',
+        card1_title: 'The Code Behind the Wild West: AI in RDR2'
+      }
+    };
+
+    /* ════════════════════════ i18n engine ════════════════════════ */
+    let currentLang = 'es';
+
+    function applyLang(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      const d = DICT[lang];
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (d[key] !== undefined) el.innerHTML = d[key];
+      });
+
+      /* Update typewriter phrases */
+      TW_LINES = lang === 'es' ? TW_ES : TW_EN;
+
+      /* Update lang button labels */
+      const label = lang === 'es' ? 'EN' : 'ES';
+      document.querySelectorAll('#lang-toggle, #lang-toggle-m').forEach(b => b.textContent = label);
+    }
+
+    function toggleLang() {
+      applyLang(currentLang === 'es' ? 'en' : 'es');
+    }
+
+    /* ════════════════════ Mobile menu ════════════════════ */
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const iconOpen = document.getElementById('icon-open');
+    const iconClose = document.getElementById('icon-close');
+
+    menuBtn.addEventListener('click', () => {
+      const isOpen = !mobileMenu.classList.contains('hidden');
+      mobileMenu.classList.toggle('hidden', isOpen);
+      iconOpen.classList.toggle('hidden', !isOpen);
+      iconClose.classList.toggle('hidden', isOpen);
+    });
+    function closeMobileMenu() {
+      mobileMenu.classList.add('hidden');
+      iconOpen.classList.remove('hidden');
+      iconClose.classList.add('hidden');
+    }
+
+    /* ════════════════════ Scroll reveal ════════════════════ */
+    const revealObs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
+      });
+    }, { threshold: 0.09 });
+    document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+    /* ════════════════════ Canvas particles ════════════════════ */
+    (function () {
+      const canvas = document.getElementById('particles');
+      const ctx = canvas.getContext('2d');
+      const COLORS = ['#00ff87', '#00fff0', '#ff00c8', '#9d00ff'];
+      const N = 65;
+      let W, H, pts = [];
+
+      function resize() {
+        const hero = document.getElementById('hero-log');
+        if (!hero) return;
+        W = canvas.width = hero.offsetWidth;
+        H = canvas.height = hero.offsetHeight;
+      }
+      function mkPt() {
+        return {
+          x: Math.random() * W, y: Math.random() * H,
+          vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3,
+          r: Math.random() * 1.3 + .4, c: COLORS[Math.random() * COLORS.length | 0],
+          a: Math.random() * .5 + .15
+        };
+      }
+      function frame() {
+        ctx.clearRect(0, 0, W, H);
+        for (let i = 0; i < N; i++) {
+          const p = pts[i];
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+          if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+          for (let j = i + 1; j < N; j++) {
+            const q = pts[j], dx = p.x - q.x, dy = p.y - q.y, d = Math.sqrt(dx * dx + dy * dy);
+            if (d < 110) {
+              ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y);
+              ctx.strokeStyle = p.c; ctx.globalAlpha = (1 - d / 110) * .1; ctx.lineWidth = .5; ctx.stroke();
+            }
+          }
+          ctx.globalAlpha = p.a; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.c; ctx.shadowBlur = 5; ctx.shadowColor = p.c; ctx.fill(); ctx.shadowBlur = 0;
+        }
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(frame);
+      }
+      window.addEventListener('resize', resize);
+      resize(); pts = Array.from({ length: N }, mkPt); frame();
+    })();
+
+    /* ════════════════════ Typewriter ════════════════════ */
+    const TW_ES = [
+      'system_log.read()',
+      'kernel_optimization.sh',
+      'osint_framework.run()',
+      'philosophy_module.load()',
+    ];
+    const TW_EN = [
+      'system_log.read()',
+      'kernel_optimization.sh',
+      'osint_framework.run()',
+      'philosophy_module.load()',
+    ];
+    let TW_LINES = TW_ES;
+
+    (function () {
+      const el = document.getElementById('typewriter');
+      if(!el) return;
+      let li = 0, ci = 0, del = false;
+      const CUR = '<span style="color:#00ff87;animation:blink 1.1s step-end infinite">|</span>';
+      function tick() {
+        const line = TW_LINES[li % TW_LINES.length];
+        if (!del) { ci++; el.innerHTML = line.slice(0, ci) + CUR; if (ci === line.length) { del = true; setTimeout(tick, 1900); return; } }
+        else { ci--; el.innerHTML = line.slice(0, ci) + CUR; if (ci === 0) { del = false; li++; setTimeout(tick, 380); return; } }
+        setTimeout(tick, del ? 38 : 72);
+      }
+      setTimeout(tick, 700);
+    })();
+
+    /* ════════════════════ Renderizador de Markdown ════════════════════ */
+    async function loadPost(basename) {
+      const reader = document.getElementById('reader-content');
+      reader.innerHTML = `<p class="font-mono flex items-center gap-2 mt-4" style="color:var(--cyan)">
+        <span class="text-magenta">></span> Cargando archivo [${basename}]...
+        <span class="animate-blink inline-block w-2 h-4" style="background:var(--cyan)"></span>
+      </p>`;
+
+      try {
+        const filename = basename.endsWith('.md') ? basename : `${basename}-${currentLang}.md`;
+        const res = await fetch(filename);
+        if (!res.ok) throw new Error('Archivo no encontrado');
+        const text = await res.text();
+        reader.innerHTML = marked.parse(text);
+      } catch (err) {
+        console.error(err);
+        reader.innerHTML = `
+          <p class="font-mono flex items-center gap-2 mt-4" style="color:#ff0044">
+            <span>></span> Error: No se pudo cargar el archivo. Si estás en local (file://), necesitas un servidor web local.
+          </p>
+        `;
+      }
+    }
+
+  </script>
+</body>
+</html>
